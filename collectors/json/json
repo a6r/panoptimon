@@ -8,6 +8,8 @@ conf = JSON.parse(ARGV[0], {symbolize_names: true})
 
 defaults = {
   timeout: conf[:default_timeout] || 3,
+  username: conf[:username] || nil,
+  password: conf[:password] || nil
 }
 
 raise "must have 'collect' value in config" unless conf[:collect]
@@ -23,7 +25,12 @@ go = ->(url, o){
   response = begin; Timeout::timeout(o[:timeout]) {
     r = ::Net::HTTP.start(url.host, url.port,
       :use_ssl      => url.scheme == 'https',
-    ).request(::Net::HTTP::Get.new(url.request_uri)) }
+    )
+    if (o[:username] && o[:password]) {
+      r.basic_auth o[:username], o[:password]
+    }
+    r.request(::Net::HTTP::Get.new(url.request_uri)) 
+  }
     JSON.parse(r.body, {sybolize_names: true})
   rescue Timeout::Error; {timeout: true}; end
 }
